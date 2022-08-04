@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters: 
+  BucketName:
+    Type: String
+    Default: divvy-data-rstuart
+Resources:
+  PullData:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role: !GetAtt LambdaRole.Arn
+      CodeUri: pulldata/
+      Handler: lambda_handler.lambda_handler
+      Runtime: python3.9
+      Timeout: 15
+      Environment:
+        Variables:
+          BucketName: !Ref BucketName
+      Events:
+        CheckWebsiteScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+
+  WeatherData:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role: !GetAtt LambdaRole.Arn
+      CodeUri: weather/
+      Handler: lambda_handler.lambda_handler
+      Runtime: python3.9
+      Timeout: 15
+      Environment:
+        Variables:
+          BucketName: !Ref BucketName
+      Events:
+        CheckWebsiteScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+
+  StorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      NotificationConfiguration:
+        TopicConfigurations:
+          - Topic: !Ref 'SNSTopic'
+            Event: 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: station_status/
+          - Topic: !Ref 'SNSTopic'
+            Event: 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: weather/
+
+
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: divvy-autopipe
+      
+  
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: Lambda-Role_Divvy
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: 'S3'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - s3:*
+                Resource:
+                  - arn:aws:s3:::divvy-data-rstuart
+                  - arn:aws:s3:::divvy-data-rstuart/*
