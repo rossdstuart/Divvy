@@ -131,6 +131,12 @@ dmypy.json
 # VS Code Workspace
 *.code-Workspace
 
+# VS Code Workspace
+*.code-Workspace
+
+# VS Code Workspace
+*.code-Workspace
+
 .vscode/
 .aws-sam/
 **.toml
