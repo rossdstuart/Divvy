@@ -140,3 +140,8 @@ dmypy.json
 .vscode/
 .aws-sam/
 **.toml
+
+# dbt 
+**target/
+**dbt_packages/
+**logs/
